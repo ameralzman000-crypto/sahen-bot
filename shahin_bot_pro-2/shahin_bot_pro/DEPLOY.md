@@ -9,8 +9,7 @@
 1. ارفع مجلد المشروع إلى GitHub.
 2. افتح https://dashboard.render.com وسجّل بحساب GitHub.
 3. New + ثم Web Service ثم اختر المستودع.
-4. إذا كان الكود داخل مجلد فرعي، ضع Root Directory على:
-   `shahin_bot_pro-2/shahin_bot_pro`
+4. اترك Root Directory فارغاً (ملفات التشغيل في جذر المستودع).
 5. الإعدادات:
 
 ```text

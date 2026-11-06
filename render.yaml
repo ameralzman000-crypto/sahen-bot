@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: shahin-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-prod.txt
+    startCommand: python main.py
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: WEB_HOST
+        value: 0.0.0.0
+      - key: AUTO_PURGE_ENABLED
+        value: "true"
+      - key: AUTO_PURGE_HOURS
+        value: "24"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: WEB_PASSWORD
+        sync: false
