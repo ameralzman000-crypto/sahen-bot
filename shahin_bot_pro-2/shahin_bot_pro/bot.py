@@ -456,6 +456,8 @@ async def bind_chat(
     kind = normalize_bound_type(chat_type)
     db.set_bound_chat(chat_id, kind)
     lock_text = await lock_group_access(context, chat_id)
+    if kind != "channel":
+        await notify_existing_members(context, chat_id)
     label = "القناة" if kind == "channel" else "المجموعة"
     return f"تم ربط {label}. المعرف: {chat_id}\n{lock_text}"
 
@@ -537,6 +539,58 @@ async def announce_group(context: ContextTypes.DEFAULT_TYPE, text: str) -> None:
         await context.bot.send_message(chat_id=chat_id, text=text)
     except TelegramError as exc:
         logger.warning("bound chat announce failed: %s", exc)
+
+
+def existing_members_notice_text(bot_username: str | None = None) -> str:
+    start_line = (
+        f"افتحوا الخاص مع @{bot_username} ثم أرسلوا /start"
+        if bot_username
+        else "افتحوا الخاص مع البوت ثم أرسلوا /start"
+    )
+    return (
+        "تنبيه للأعضاء الموجودين قبل دخول البوت\n"
+        "────────\n"
+        "أنتم باقون في المجموعة ولن تُطردوا.\n"
+        "للكتابة بالاسم المستعار:\n"
+        f"1. {start_line}\n"
+        "2. سجّلوا الاسم الحقيقي ثم الاسم المستعار.\n"
+        "3. انتظروا موافقة المدير.\n\n"
+        "لا تكتبوا داخل المجموعة قبل القبول حتى لا يظهر اسمكم الحقيقي."
+    )
+
+
+async def notify_existing_members(
+    context: ContextTypes.DEFAULT_TYPE,
+    chat_id: int | None = None,
+) -> bool:
+    target = chat_id or db.get_group_chat_id()
+    if not target or db.is_channel_bound():
+        return False
+    if db.get_setting("existing_members_notice_sent") == str(target):
+        return False
+    username = None
+    try:
+        me = await context.bot.get_me()
+        username = getattr(me, "username", None)
+    except TelegramError:
+        pass
+    text = existing_members_notice_text(username)
+    try:
+        sent = await context.bot.send_message(chat_id=target, text=text)
+    except TelegramError as exc:
+        logger.warning("existing members notice failed: %s", exc)
+        return False
+    db.set_setting("existing_members_notice_sent", str(target))
+    if sent:
+        try:
+            await context.bot.pin_chat_message(
+                chat_id=target,
+                message_id=sent.message_id,
+                disable_notification=False,
+            )
+        except TelegramError as exc:
+            logger.warning("pin existing members notice failed: %s", exc)
+    return True
 
 
 MEMBER_CHAT_PERMISSIONS = ChatPermissions(
@@ -2323,6 +2377,8 @@ async def on_my_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             f"تم ربط {label} تلقائياً. المعرف: {chat.id}\n"
             "إذا لم تُقفل الصلاحيات أرسل /setgroup داخلها أو /setchannel من الخاص.",
         )
+        if chat.type != ChatType.CHANNEL:
+            await notify_existing_members(context, chat.id)
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:

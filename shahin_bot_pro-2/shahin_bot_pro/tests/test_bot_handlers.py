@@ -604,6 +604,42 @@ def test_wipe_callback_admin_resets_data(isolated_db):
     asyncio.run(_run())
 
 
+def test_existing_members_notice_sent_once(isolated_db):
+    async def _run():
+        db.set_bound_chat(-100, "supergroup")
+        sent = SimpleNamespace(message_id=42)
+        context = SimpleNamespace(
+            bot=SimpleNamespace(
+                get_me=AsyncMock(return_value=SimpleNamespace(username="shahin_bot")),
+                send_message=AsyncMock(return_value=sent),
+                pin_chat_message=AsyncMock(),
+            )
+        )
+        first = await bot.notify_existing_members(context, -100)
+        second = await bot.notify_existing_members(context, -100)
+        assert first is True
+        assert second is False
+        context.bot.send_message.assert_awaited_once()
+        posted = context.bot.send_message.await_args.kwargs["text"]
+        assert "الموجودين قبل دخول البوت" in posted
+        assert "@shahin_bot" in posted
+        assert "/start" in posted
+        context.bot.pin_chat_message.assert_awaited_once()
+
+    asyncio.run(_run())
+
+
+def test_existing_members_notice_skipped_for_channel(isolated_db):
+    async def _run():
+        db.set_bound_chat(-200, "channel")
+        context = SimpleNamespace(bot=SimpleNamespace(send_message=AsyncMock()))
+        result = await bot.notify_existing_members(context, -200)
+        assert result is False
+        context.bot.send_message.assert_not_awaited()
+
+    asyncio.run(_run())
+
+
 def test_build_application(isolated_db, monkeypatch):
     monkeypatch.setattr(config, "BOT_TOKEN", "123456:TESTTOKEN")
     monkeypatch.setattr(bot, "BOT_TOKEN", "123456:TESTTOKEN")
