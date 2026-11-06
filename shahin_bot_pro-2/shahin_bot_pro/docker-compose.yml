@@ -1,0 +1,10 @@
+services:
+  aliasbot:
+    build: .
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    environment:
+      DB_PATH: /app/data/alias_group.db

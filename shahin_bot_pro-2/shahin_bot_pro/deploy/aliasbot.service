@@ -1,0 +1,19 @@
+[Unit]
+Description=Alias Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/aliasbot
+EnvironmentFile=/home/ubuntu/aliasbot/.env
+ExecStart=/home/ubuntu/aliasbot/.venv/bin/python3 /home/ubuntu/aliasbot/bot.py
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
