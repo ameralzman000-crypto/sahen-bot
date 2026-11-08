@@ -106,6 +106,8 @@ HELP_TEXT = (
     "المدير فقط:\n"
     "/ban <id> — حظر عضو\n"
     "/unban <id> — إلغاء الحظر\n"
+    "/unregister <id> — إلغاء تسجيل عضو ليعيد /start\n"
+    "/setalias <id> <اسم> — تعديل الاسم المستعار\n"
     "/setmod <id> — تعيين مشرف\n"
     "/unsetmod <id> — إلغاء الإشراف\n"
     "/allowreveal <id> — السماح بالكشف\n"
@@ -151,6 +153,8 @@ ADMIN_COMMANDS = MEMBER_COMMANDS + [
     BotCommand("unmute", "فك كتم عضو"),
     BotCommand("ban", "حظر عضو"),
     BotCommand("unban", "إلغاء الحظر"),
+    BotCommand("unregister", "إلغاء تسجيل عضو"),
+    BotCommand("setalias", "تعديل الاسم المستعار"),
     BotCommand("setmod", "تعيين مشرف"),
     BotCommand("unsetmod", "إلغاء الإشراف"),
     BotCommand("allowreveal", "السماح بكشف الهوية"),
@@ -1322,6 +1326,57 @@ async def cmd_unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "تم رفع الحظر وإعادة الطلب إلى الانتظار لـ",
         "تم رفع الحظر. أعد التسجيل عبر /start إن لزم.",
     )
+
+
+async def cmd_unregister(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if await deny_if_not_admin(update):
+        return
+    target = _target_id(context.args)
+    if not target:
+        await safe_reply(update.effective_message, "حدد المعرف الرقمي: /unregister 123456")
+        return
+    if target == ADMIN_ID:
+        await safe_reply(update.effective_message, "لا يمكن إلغاء تسجيل المدير.")
+        return
+    record = db.get_user(target)
+    if not record:
+        await safe_reply(update.effective_message, "العضو غير موجود.")
+        return
+    shown = display_name(record)
+    if not db.delete_user(target):
+        await safe_reply(update.effective_message, "تعذر إلغاء التسجيل.")
+        return
+    await safe_reply(update.effective_message, f"تم إلغاء تسجيل {shown}. يمكنه إعادة /start.")
+    await safe_send_private(context, target, "أُلغي تسجيلك. أعد التسجيل عبر /start إذا رغبت.")
+
+
+async def cmd_setalias(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if await deny_if_not_admin(update):
+        return
+    args = list(context.args or [])
+    target = _target_id(args)
+    if not target or len(args) < 2:
+        await safe_reply(update.effective_message, "الاستخدام: /setalias 123456 الاسم_الجديد")
+        return
+    if target == ADMIN_ID:
+        await safe_reply(update.effective_message, "لا يمكن تعديل اسم المدير الظاهر.")
+        return
+    record = db.get_user(target)
+    if not record:
+        await safe_reply(update.effective_message, "العضو غير موجود.")
+        return
+    alias = validate_alias(" ".join(args[1:]))
+    if not alias:
+        await safe_reply(update.effective_message, "الاسم المستعار غير صالح.")
+        return
+    if db.alias_taken(alias, exclude_user_id=target):
+        await safe_reply(update.effective_message, "هذا الاسم المستعار مستخدم.")
+        return
+    old = record.get("alias") or display_name(record)
+    updated = db.set_alias(target, alias)
+    shown = display_name(updated)
+    await safe_reply(update.effective_message, f"تم تغيير الاسم المستعار من {old} إلى {shown}.")
+    await safe_send_private(context, target, f"غيّر المدير اسمك المستعار إلى: {shown}")
 
 
 async def cmd_setmod(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -2506,6 +2561,8 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("reject", cmd_reject))
     app.add_handler(CommandHandler("ban", cmd_ban))
     app.add_handler(CommandHandler("unban", cmd_unban))
+    app.add_handler(CommandHandler("unregister", cmd_unregister))
+    app.add_handler(CommandHandler("setalias", cmd_setalias))
     app.add_handler(CommandHandler("setmod", cmd_setmod))
     app.add_handler(CommandHandler("unsetmod", cmd_unsetmod))
     app.add_handler(CommandHandler("allowreveal", cmd_allowreveal))

@@ -38,6 +38,15 @@ class DatabaseTests(unittest.TestCase):
         db.set_bound_chat(-1001, "supergroup")
         self.assertEqual(db.get_group_chat_id(), -1001)
 
+    def test_set_alias_and_delete_user(self):
+        db.upsert_registration(77, "User", "الذئب", None)
+        updated = db.set_alias(77, "النسر")
+        self.assertEqual(updated["alias"], "النسر")
+        self.assertTrue(db.delete_user(77))
+        self.assertIsNone(db.get_user(77))
+        self.assertFalse(db.delete_user(config.ADMIN_ID))
+        self.assertIsNotNone(db.get_user(config.ADMIN_ID))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -531,4 +531,26 @@ def alias_taken(alias: str, exclude_user_id: int | None = None) -> bool:
         return row is not None
 
 
+def set_alias(user_id: int, alias: str) -> dict | None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET alias = ?, updated_at = ? WHERE user_id = ?",
+            (alias, _now(), user_id),
+        )
+        row = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        return _row_to_dict(row)
+
+
+def delete_user(user_id: int) -> bool:
+    if int(user_id) == int(ADMIN_ID):
+        return False
+    with get_conn() as conn:
+        row = conn.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        if not row:
+            return False
+        conn.execute("DELETE FROM mutes WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        return True
+
+
 

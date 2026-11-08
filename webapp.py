@@ -146,6 +146,13 @@ def user_rows(users):
             <button class="btn gray" name="action" value="mute">{mute_label}</button>
             <button class="btn gray" name="action" value="mod">مشرف</button>
             <button class="btn red" name="action" value="banned">حظر</button>
+            <button class="btn red" name="action" value="unregister">إلغاء التسجيل</button>
+          </form>
+          <form class="actions" method="post" action="/users/action" style="margin-top:6px">
+            <input type="hidden" name="user_id" value="{r['user_id']}">
+            <input type="hidden" name="action" value="setalias">
+            <input name="alias" placeholder="اسم مستعار جديد" required>
+            <button class="btn gray">تعديل الاسم</button>
           </form>
         </td>
         </tr>""")
@@ -433,6 +440,33 @@ async def user_action(request):
         number = db.next_moderator_number()
         db.set_role(user_id, config.ROLE_MODERATOR, number, 0)
         go("/", f"تم تعيين مشرف {number}")
+    if action == "unregister":
+        if user_id == config.ADMIN_ID:
+            go("/", "لا يمكن إلغاء تسجيل المدير")
+        if not db.delete_user(user_id):
+            go("/", "تعذر إلغاء التسجيل")
+        if app:
+            try:
+                await app.bot.send_message(user_id, "أُلغي تسجيلك. أعد التسجيل عبر /start إذا رغبت.")
+            except Exception:
+                pass
+        go("/", f"تم إلغاء تسجيل {user_id}")
+    if action == "setalias":
+        if user_id == config.ADMIN_ID:
+            go("/", "لا يمكن تعديل اسم المدير الظاهر")
+        from utils import validate_alias
+        alias = validate_alias(str(data.get("alias") or ""))
+        if not alias:
+            go("/", "الاسم المستعار غير صالح")
+        if db.alias_taken(alias, exclude_user_id=user_id):
+            go("/", "هذا الاسم المستعار مستخدم")
+        db.set_alias(user_id, alias)
+        if app:
+            try:
+                await app.bot.send_message(user_id, f"غيّر المدير اسمك المستعار إلى: {alias}")
+            except Exception:
+                pass
+        go("/", f"تم تعديل الاسم المستعار لـ {user_id}")
     go("/", "إجراء غير معروف")
 
 
