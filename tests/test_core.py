@@ -35,6 +35,13 @@ def teardown_module(module):
         pass
 
 
+def test_resolve_db_path_creates_parent(tmp_path):
+    target = tmp_path / "persist" / "alias_group.db"
+    resolved = config.resolve_db_path(str(target))
+    assert resolved == str(target)
+    assert target.parent.is_dir()
+
+
 def test_validate_real_name():
     assert validate_real_name("أحمد محمد") == "أحمد محمد"
     assert validate_real_name("  A  B  ") == "A B"

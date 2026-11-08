@@ -6,11 +6,17 @@ services:
     buildCommand: pip install -r requirements-prod.txt
     startCommand: python main.py
     healthCheckPath: /health
+    disk:
+      name: shahin-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: WEB_HOST
         value: 0.0.0.0
+      - key: DB_PATH
+        value: /var/data/alias_group.db
       - key: AUTO_PURGE_ENABLED
         value: "true"
       - key: AUTO_PURGE_HOURS

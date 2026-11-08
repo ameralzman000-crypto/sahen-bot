@@ -3,10 +3,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def resolve_db_path(raw: str | None = None) -> str:
+    value = (raw or "").strip()
+    if not value:
+        value = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "alias_group.db")
+    parent = os.path.dirname(os.path.abspath(value))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    return value
+
+
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 _admin_raw = (os.getenv("ADMIN_IDS") or os.getenv("ADMIN_ID") or "1441524960").split(",")[0].strip()
 ADMIN_ID = int(_admin_raw) if _admin_raw.lstrip("-").isdigit() else 1441524960
-DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "alias_group.db"))
+DB_PATH = resolve_db_path(os.getenv("DB_PATH"))
 
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0").strip() or "0.0.0.0"
 WEB_PORT = int(os.getenv("PORT") or os.getenv("WEB_PORT", "8080") or 8080)
@@ -67,7 +78,7 @@ def reload_from_env():
     admin_raw = (os.getenv("ADMIN_IDS") or os.getenv("ADMIN_ID") or str(ADMIN_ID)).split(",")[0].strip()
     if admin_raw.lstrip("-").isdigit():
         ADMIN_ID = int(admin_raw)
-    DB_PATH = os.getenv("DB_PATH", DB_PATH)
+    DB_PATH = resolve_db_path(os.getenv("DB_PATH", DB_PATH))
     WEB_HOST = os.getenv("WEB_HOST", WEB_HOST).strip() or "0.0.0.0"
     WEB_PORT = int(os.getenv("PORT") or os.getenv("WEB_PORT", str(WEB_PORT)) or WEB_PORT)
     WEB_PASSWORD = os.getenv("WEB_PASSWORD", WEB_PASSWORD).strip()
