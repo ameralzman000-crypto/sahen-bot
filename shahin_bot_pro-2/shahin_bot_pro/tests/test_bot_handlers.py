@@ -606,7 +606,7 @@ def test_wipe_callback_admin_resets_data(isolated_db):
 
 def test_admin_unregister_and_setalias(isolated_db):
     async def _run():
-        rec = db.upsert_registration(4242, "خالد علي", "الذئب", None)
+        db.upsert_registration(4242, "خالد علي", "الذئب", None)
         db.set_status(4242, "approved")
         unreg_msg = DummyMsg(text="/unregister 4242")
         unreg_update = _update(config.ADMIN_ID, unreg_msg, chat_type="private")
@@ -626,30 +626,13 @@ def test_admin_unregister_and_setalias(isolated_db):
         assert db.get_user(4243)["alias"] == "النسر"
         assert "النسر" in alias_msg.reply_text.await_args.args[0]
 
-    asyncio.run(_run())
-
-
-def test_admin_unregister_and_setalias(isolated_db):
-    async def _run():
-        rec = db.upsert_registration(4242, "خالد علي", "الذئب", None)
-        db.set_status(4242, "approved")
-        unreg_msg = DummyMsg(text="/unregister 4242")
-        unreg_update = _update(config.ADMIN_ID, unreg_msg, chat_type="private")
-        context = SimpleNamespace(args=["4242"], bot=SimpleNamespace(send_message=AsyncMock()))
+        name_msg = DummyMsg(text="/setname 4243 سارة محمد")
+        name_update = _update(config.ADMIN_ID, name_msg, chat_type="private")
+        name_ctx = SimpleNamespace(args=["4243", "سارة", "محمد"], bot=SimpleNamespace(send_message=AsyncMock()))
         with patch.object(bot, "safe_send_private", new=AsyncMock(return_value=True)):
-            await bot.cmd_unregister(unreg_update, context)
-        assert db.get_user(4242) is None
-        assert "إلغاء تسجيل" in unreg_msg.reply_text.await_args.args[0]
-
-        db.upsert_registration(4243, "سارة علي", "الوردة", None)
-        db.set_status(4243, "approved")
-        alias_msg = DummyMsg(text="/setalias 4243 النسر")
-        alias_update = _update(config.ADMIN_ID, alias_msg, chat_type="private")
-        alias_ctx = SimpleNamespace(args=["4243", "النسر"], bot=SimpleNamespace(send_message=AsyncMock()))
-        with patch.object(bot, "safe_send_private", new=AsyncMock(return_value=True)):
-            await bot.cmd_setalias(alias_update, alias_ctx)
-        assert db.get_user(4243)["alias"] == "النسر"
-        assert "النسر" in alias_msg.reply_text.await_args.args[0]
+            await bot.cmd_setname(name_update, name_ctx)
+        assert db.get_user(4243)["real_name"] == "سارة محمد"
+        assert "سارة محمد" in name_msg.reply_text.await_args.args[0]
 
     asyncio.run(_run())
 

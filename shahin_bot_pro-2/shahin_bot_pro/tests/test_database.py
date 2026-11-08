@@ -42,6 +42,8 @@ class DatabaseTests(unittest.TestCase):
         db.upsert_registration(77, "User", "الذئب", None)
         updated = db.set_alias(77, "النسر")
         self.assertEqual(updated["alias"], "النسر")
+        named = db.set_real_name(77, "خالد علي")
+        self.assertEqual(named["real_name"], "خالد علي")
         self.assertTrue(db.delete_user(77))
         self.assertIsNone(db.get_user(77))
         self.assertFalse(db.delete_user(config.ADMIN_ID))

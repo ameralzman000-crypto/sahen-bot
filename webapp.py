@@ -152,7 +152,13 @@ def user_rows(users):
             <input type="hidden" name="user_id" value="{r['user_id']}">
             <input type="hidden" name="action" value="setalias">
             <input name="alias" placeholder="اسم مستعار جديد" required>
-            <button class="btn gray">تعديل الاسم</button>
+            <button class="btn gray">تعديل المستعار</button>
+          </form>
+          <form class="actions" method="post" action="/users/action" style="margin-top:6px">
+            <input type="hidden" name="user_id" value="{r['user_id']}">
+            <input type="hidden" name="action" value="setname">
+            <input name="real_name" placeholder="اسم حقيقي جديد" required>
+            <button class="btn gray">تعديل الحقيقي</button>
           </form>
         </td>
         </tr>""")
@@ -467,6 +473,18 @@ async def user_action(request):
             except Exception:
                 pass
         go("/", f"تم تعديل الاسم المستعار لـ {user_id}")
+    if action == "setname":
+        from utils import validate_real_name
+        real_name = validate_real_name(str(data.get("real_name") or ""))
+        if not real_name:
+            go("/", "الاسم الحقيقي غير صالح")
+        db.set_real_name(user_id, real_name)
+        if app:
+            try:
+                await app.bot.send_message(user_id, f"غيّر المدير اسمك الحقيقي إلى: {real_name}")
+            except Exception:
+                pass
+        go("/", f"تم تعديل الاسم الحقيقي لـ {user_id}")
     go("/", "إجراء غير معروف")
 
 

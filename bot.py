@@ -108,6 +108,7 @@ HELP_TEXT = (
     "/unban <id> — إلغاء الحظر\n"
     "/unregister <id> — إلغاء تسجيل عضو ليعيد /start\n"
     "/setalias <id> <اسم> — تعديل الاسم المستعار\n"
+    "/setname <id> <اسم> — تعديل الاسم الحقيقي\n"
     "/setmod <id> — تعيين مشرف\n"
     "/unsetmod <id> — إلغاء الإشراف\n"
     "/allowreveal <id> — السماح بالكشف\n"
@@ -155,6 +156,7 @@ ADMIN_COMMANDS = MEMBER_COMMANDS + [
     BotCommand("unban", "إلغاء الحظر"),
     BotCommand("unregister", "إلغاء تسجيل عضو"),
     BotCommand("setalias", "تعديل الاسم المستعار"),
+    BotCommand("setname", "تعديل الاسم الحقيقي"),
     BotCommand("setmod", "تعيين مشرف"),
     BotCommand("unsetmod", "إلغاء الإشراف"),
     BotCommand("allowreveal", "السماح بكشف الهوية"),
@@ -1379,6 +1381,31 @@ async def cmd_setalias(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await safe_send_private(context, target, f"غيّر المدير اسمك المستعار إلى: {shown}")
 
 
+async def cmd_setname(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if await deny_if_not_admin(update):
+        return
+    args = list(context.args or [])
+    target = _target_id(args)
+    if not target or len(args) < 2:
+        await safe_reply(update.effective_message, "الاستخدام: /setname 123456 الاسم الحقيقي")
+        return
+    record = db.get_user(target)
+    if not record:
+        await safe_reply(update.effective_message, "العضو غير موجود.")
+        return
+    real_name = validate_real_name(" ".join(args[1:]))
+    if not real_name:
+        await safe_reply(update.effective_message, "الاسم الحقيقي غير صالح.")
+        return
+    old = record.get("real_name") or ""
+    updated = db.set_real_name(target, real_name)
+    await safe_reply(
+        update.effective_message,
+        f"تم تغيير الاسم الحقيقي من {old} إلى {updated.get('real_name')}.",
+    )
+    await safe_send_private(context, target, f"غيّر المدير اسمك الحقيقي إلى: {real_name}")
+
+
 async def cmd_setmod(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if await deny_if_not_admin(update):
         return
@@ -2563,6 +2590,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("unban", cmd_unban))
     app.add_handler(CommandHandler("unregister", cmd_unregister))
     app.add_handler(CommandHandler("setalias", cmd_setalias))
+    app.add_handler(CommandHandler("setname", cmd_setname))
     app.add_handler(CommandHandler("setmod", cmd_setmod))
     app.add_handler(CommandHandler("unsetmod", cmd_unsetmod))
     app.add_handler(CommandHandler("allowreveal", cmd_allowreveal))

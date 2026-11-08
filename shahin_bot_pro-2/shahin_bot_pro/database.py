@@ -541,6 +541,16 @@ def set_alias(user_id: int, alias: str) -> dict | None:
         return _row_to_dict(row)
 
 
+def set_real_name(user_id: int, real_name: str) -> dict | None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET real_name = ?, updated_at = ? WHERE user_id = ?",
+            (real_name, _now(), user_id),
+        )
+        row = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        return _row_to_dict(row)
+
+
 def delete_user(user_id: int) -> bool:
     if int(user_id) == int(ADMIN_ID):
         return False
